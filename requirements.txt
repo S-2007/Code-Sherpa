@@ -1,0 +1,9 @@
+fastapi
+pydantic
+fastembed
+chromadb
+python-dotenv
+uvicorn
+openai
+groq
+tiktoken
