@@ -1,3 +1,12 @@
+# Stage 1: Build React Frontend
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend ./
+RUN npm run build
+
+# Stage 2: Python Backend & Static Server
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -19,9 +28,10 @@ COPY --chown=user requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=user backend backend
+COPY --chown=user --from=frontend-builder /app/frontend/dist frontend/dist
 
 WORKDIR $HOME/app/backend
 
-EXPOSE 7860
+EXPOSE 8000
 
-CMD ["uvicorn", "app.server:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["sh", "-c", "uvicorn app.server:app --host 0.0.0.0 --port ${PORT:-8000}"]

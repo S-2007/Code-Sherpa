@@ -1,8 +1,11 @@
 from contextlib import asynccontextmanager
 import logging
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 
 # Load your environment variables for OpenRouter and Chroma
@@ -83,6 +86,32 @@ app.add_middleware(
 app.include_router(chat_router, prefix="/api/v1/sherpachat", tags=["Conversational AI"])
 app.include_router(clone_router, prefix="/api/v1/ingest", tags=["Repository Processing"])
 
-@app.get("/")
-async def health_check():
-    return {"status": "online", "message": "CODE Sherpa Web Server is running!"}
+# -------------------------------------------------------------------
+# Serve Frontend Static Assets if available (Single Web Service mode)
+# -------------------------------------------------------------------
+possible_dist_dirs = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend", "dist"),
+    os.path.join(os.getcwd(), "frontend", "dist"),
+    os.path.join(os.getcwd(), "dist"),
+]
+
+frontend_dist = next((d for d in possible_dist_dirs if os.path.isdir(d) and os.path.exists(os.path.join(d, "index.html"))), None)
+
+if frontend_dist:
+    logger.info(f"Serving frontend static build from: {frontend_dist}")
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api/"):
+            return {"error": "API route not found"}
+        file_path = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+else:
+    @app.get("/")
+    async def health_check():
+        return {"status": "online", "message": "CODE Sherpa Web Server is running!"}
