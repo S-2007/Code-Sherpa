@@ -8,8 +8,6 @@
 
 *Understand complex codebases through interactive dependency graphs, deterministic AST parsing, and precision-grounded AI explanation.*
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open%20CODE%20Sherpa-5B5FEF?style=for-the-badge&logo=render&logoColor=white)](https://code-sherpa-sajv.onrender.com)
-
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](./LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -121,15 +119,6 @@ flowchart TD
 | **Vector Database** | **ChromaDB, FastEmbed** | Dense vector index supporting cosine distance similarity with local persistence |
 | **LLM Inference** | **Groq API (`qwen/qwen3.8-27b`)** | Lightning-fast token generation on custom LPU tensor architecture |
 | **State Management** | **Zustand** | Centralized, decoupled client state for repository telemetry and chat buffers |
-
----
-
-## 🌐 Live Deployment
-
-CODE Sherpa is deployed live and fully functional:
-👉 **[https://code-sherpa-sajv.onrender.com](https://code-sherpa-sajv.onrender.com)**
-
-Paste any public Python GitHub repository (e.g., `https://github.com/psf/requests.git`) to visualize its architecture and ask questions.
 
 ---
 
