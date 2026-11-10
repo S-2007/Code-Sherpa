@@ -10,7 +10,9 @@ function App() {
     });
 
     const handleUnload = () => {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const baseUrl = import.meta.env.VITE_API_BASE_URL 
+        ? import.meta.env.VITE_API_BASE_URL 
+        : (import.meta.env.DEV ? 'http://localhost:8000' : '');
       // Use keepalive: true to ensure request completes after tab is closed
       fetch(`${baseUrl}/api/v1/ingest/reset`, {
         method: 'POST',
