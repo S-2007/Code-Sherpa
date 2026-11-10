@@ -42,7 +42,7 @@ def get_openrouter_client() -> OpenAI:
     base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
     headers = {
-        "HTTP-Referer": os.getenv("OPENROUTER_REFERER", "https://code-sherpa.vercel.app"),
+        "HTTP-Referer": os.getenv("OPENROUTER_REFERER", "https://code-sherpa-sajv.onrender.com"),
         "X-Title": os.getenv("OPENROUTER_APP_TITLE", "CODE Sherpa"),
     }
 

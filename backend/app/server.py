@@ -74,7 +74,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://code-sherpa.vercel.app",
+        "https://code-sherpa-sajv.onrender.com",
     ],
     allow_origin_regex=r"https://.*(\.vercel\.app|\.onrender\.com)",
     allow_credentials=True,
