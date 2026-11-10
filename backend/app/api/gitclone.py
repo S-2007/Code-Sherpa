@@ -4,7 +4,6 @@ import os
 import json
 import uuid
 import logging
-import gc
 from typing import Dict, Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -27,29 +26,15 @@ jobs: Dict[str, Any] = {}
 
 def ingest_github_repo(job_id: str, repo_url: str):
     try:
-        repo_url = repo_url.strip()
-        if not repo_url.startswith("http://") and not repo_url.startswith("https://"):
-            repo_url = f"https://{repo_url}"
-        if repo_url.endswith("/"):
-            repo_url = repo_url[:-1]
-
         jobs[job_id] = {"status": "cloning", "message": "Cloning repository..."}
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            try:
-                result = subprocess.run(
-                    ["git", "clone", "--depth=1", repo_url, temp_dir],
-                    capture_output=True,
-                    text=True,
-                    timeout=90
-                )
-            except subprocess.TimeoutExpired:
-                jobs[job_id] = {
-                    "status": "failed",
-                    "message": "Git clone timed out (repo may be too large or network slow)."
-                }
-                return
 
+            result = subprocess.run(
+                ["git", "clone", "--depth=1", repo_url, temp_dir],
+                capture_output=True,
+                text=True
+            )
             if result.returncode != 0:
                 jobs[job_id] = {
                     "status": "failed",
@@ -61,16 +46,12 @@ def ingest_github_repo(job_id: str, repo_url: str):
             analysis_result = build_unified_model(temp_dir)
 
             # Attach file source text so frontend can render code tabs and function bodies.
-            # Limit file preview to 500KB to protect RAM on Render
             for file_path, file_meta in analysis_result.get("files", {}).items():
                 source_path = os.path.join(temp_dir, file_path)
                 try:
-                    if os.path.isfile(source_path) and os.path.getsize(source_path) < 500 * 1024:
-                        with open(source_path, "r", encoding="utf-8", errors="replace") as source_file:
-                            file_meta["source"] = source_file.read()
-                    else:
-                        file_meta["source"] = ""
-                except Exception:
+                    with open(source_path, "r", encoding="utf-8") as source_file:
+                        file_meta["source"] = source_file.read()
+                except FileNotFoundError:
                     file_meta["source"] = ""
 
             analysis_file = os.path.join(temp_dir, "analysis.json")
@@ -80,11 +61,6 @@ def ingest_github_repo(job_id: str, repo_url: str):
             jobs[job_id] = {"status": "ingesting", "message": "Uploading to vector database..."}
             chunker = SmartChunker(analysis_file, temp_dir)
             chunks = chunker.extract_chunks()
-
-            # Cap chunks to avoid OOM crash on 512MB RAM free instances
-            if len(chunks) > 200:
-                logger.warning(f"Repo produced {len(chunks)} chunks, capping to 200 for stability.")
-                chunks = chunks[:200]
 
             db = ChromaCloudDB(collection_name="codesherpa_real_repo")
             db.ingest_chunks(chunks)
@@ -111,15 +87,12 @@ def ingest_github_repo(job_id: str, repo_url: str):
                 "graph": graph
             }
         }
-        gc.collect()
 
     except Exception as e:
-        logger.error(f"Error during ingestion job {job_id}: {e}", exc_info=True)
         jobs[job_id] = {
             "status": "failed",
             "message": str(e)
         }
-        gc.collect()
 
 
 router = APIRouter()
