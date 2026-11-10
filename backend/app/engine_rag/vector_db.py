@@ -1,6 +1,16 @@
 import os
+import gc
 import logging
 from typing import List, Dict, Any
+
+# Constrain worker threads to prevent RAM exhaustion on memory-constrained servers (e.g. Render 512MB RAM)
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
 import chromadb
 
 logging.basicConfig(level=logging.INFO)
@@ -58,10 +68,10 @@ class ChromaCloudDB:
             metadatas.append(chunk["metadata"])
             ids.append(chunk["id"]) # Natively supports your AST string IDs
 
-        logger.info(f"Uploading {len(chunks)} nodes to Chroma Cloud in batches...")
+        logger.info(f"Uploading {len(chunks)} nodes to Chroma in batches...")
         
-        # Chroma Cloud has a limit of 300 records per API call
-        batch_size = 300
+        # Keep batch size small (25) to avoid OOM spikes on 512MB containers
+        batch_size = int(os.getenv("CHROMA_BATCH_SIZE", "25"))
         total_batches = (len(documents) + batch_size - 1) // batch_size
         
         for i in range(0, len(documents), batch_size):
@@ -75,8 +85,9 @@ class ChromaCloudDB:
                 ids=batch_ids
             )
             logger.info(f"Uploaded batch {i//batch_size + 1} of {total_batches}")
+            gc.collect()
             
-        logger.info("Chroma Cloud ingestion completed successfully.")
+        logger.info("Chroma ingestion completed successfully.")
 
     def clear_collection(self):
         try:
